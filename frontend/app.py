@@ -12,6 +12,9 @@ import streamlit as st
 
 API_URL = "http://localhost:8000"
 
+# Bypass system proxy for localhost — prevents SOCKS proxy errors on macOS
+NO_PROXY_CLIENT = httpx.Client(trust_env=False, timeout=60)
+
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="AI Research Assistant", page_icon="📄", layout="wide")
 st.title("📄 AI Research Assistant")
@@ -22,6 +25,8 @@ if "doc_loaded" not in st.session_state:
     st.session_state.doc_loaded = False
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # list of {"question": ..., "answer": ...}
+if "summary" not in st.session_state:
+    st.session_state.summary = ""
 
 # ── Sidebar: upload ───────────────────────────────────────────────────────────
 with st.sidebar:
@@ -31,7 +36,7 @@ with st.sidebar:
     if uploaded_file and st.button("Process Document", type="primary"):
         with st.spinner("Extracting text and building vector index..."):
             try:
-                response = httpx.post(
+                response = NO_PROXY_CLIENT.post(
                     f"{API_URL}/upload",
                     files={
                         "file": (
@@ -40,7 +45,6 @@ with st.sidebar:
                             "application/pdf",
                         )
                     },
-                    timeout=60,
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -56,16 +60,21 @@ with st.sidebar:
         st.divider()
         st.header("2. Summarize")
         if st.button("Generate Summary"):
+            st.session_state.summary = ""
             with st.spinner("Summarizing..."):
-                summary_placeholder = st.empty()
                 full_summary = ""
                 try:
-                    with httpx.stream("POST", f"{API_URL}/summarize", timeout=60) as r:
+                    with NO_PROXY_CLIENT.stream("POST", f"{API_URL}/summarize") as r:
                         for chunk in r.iter_text():
                             full_summary += chunk
-                            summary_placeholder.markdown(full_summary)
+                except httpx.RemoteProtocolError:
+                    pass
                 except Exception as e:
                     st.error(f"Error: {e}")
+                st.session_state.summary = full_summary
+
+        if st.session_state.summary:
+            st.markdown(st.session_state.summary)
 
 # ── Main area: Q&A ────────────────────────────────────────────────────────────
 if not st.session_state.doc_loaded:
@@ -93,16 +102,17 @@ else:
             answer_placeholder = st.empty()
             full_answer = ""
             try:
-                with httpx.stream(
+                with NO_PROXY_CLIENT.stream(
                     "POST",
                     f"{API_URL}/ask",
                     json={"text": question},
-                    timeout=60,
                 ) as r:
                     for chunk in r.iter_text():
                         full_answer += chunk
                         answer_placeholder.markdown(full_answer + "▌")  # blinking cursor effect
                 answer_placeholder.markdown(full_answer)  # remove cursor when done
+            except httpx.RemoteProtocolError:
+                answer_placeholder.markdown(full_answer)  # show whatever we received
             except Exception as e:
                 st.error(f"Error: {e}")
 

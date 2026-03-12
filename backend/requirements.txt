@@ -5,6 +5,6 @@ python-multipart
 pypdf
 sentence-transformers
 faiss-cpu
-httpx
+httpx[socks]
 streamlit
 python-dotenv

@@ -7,9 +7,10 @@ and streams the response back token by token.
 
 import os
 from typing import Iterator
+import httpx
 import anthropic
 
-# The Anthropic client reads ANTHROPIC_API_KEY from your environment automatically
+# Use system proxy for Anthropic API (needed to reach Anthropic from some regions)
 client = anthropic.Anthropic()
 
 
