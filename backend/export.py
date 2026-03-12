@@ -8,8 +8,22 @@ from rag import Chunk
 
 
 def _safe(text: str) -> str:
-    """Encode text to latin-1 safe characters (fpdf2 built-in fonts don't support full Unicode)."""
-    return text.encode("latin-1", errors="replace").decode("latin-1")
+    """Replace common Unicode chars with ASCII equivalents for fpdf2 core fonts."""
+    return (
+        text
+        .replace("\u2014", "-")    # em dash
+        .replace("\u2013", "-")    # en dash
+        .replace("\u2018", "'")    # left single quote
+        .replace("\u2019", "'")    # right single quote
+        .replace("\u201c", '"')    # left double quote
+        .replace("\u201d", '"')    # right double quote
+        .replace("\u2026", "...")  # ellipsis
+        .replace("\u2022", "*")    # bullet
+        .replace("\u00a0", " ")    # non-breaking space
+        .replace("\u00b7", ".")    # middle dot
+        .encode("latin-1", errors="replace")
+        .decode("latin-1")
+    )
 
 
 def export_chat_to_pdf(
@@ -34,7 +48,7 @@ def export_chat_to_pdf(
 
     # ── Title ─────────────────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "AI Research Assistant — Q&A Report", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, "AI Research Assistant - Q&A Report", align="C", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(0, 6, _safe(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"),
