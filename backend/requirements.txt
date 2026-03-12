@@ -1,0 +1,10 @@
+anthropic
+fastapi
+uvicorn
+python-multipart
+pypdf
+sentence-transformers
+faiss-cpu
+httpx
+streamlit
+python-dotenv
