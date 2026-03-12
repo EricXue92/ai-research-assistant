@@ -92,7 +92,16 @@ if "summary" not in st.session_state:
 if "lang" not in st.session_state:
     st.session_state.lang = "English"
 
-# Shorthand for current translations
+# ── Language selector (must come before computing t) ──────────────────────────
+with st.sidebar:
+    selected_lang = st.radio("🌐 Language / 语言", ["English", "中文"], horizontal=True,
+                             index=0 if st.session_state.lang == "English" else 1)
+    if selected_lang != st.session_state.lang:
+        st.session_state.lang = selected_lang
+        st.session_state.summary = ""  # reset summary when language changes
+    st.divider()
+
+# Shorthand for current translations — computed after language is set
 t = T[st.session_state.lang]
 doc_loaded = bool(st.session_state.loaded_docs)
 
@@ -106,17 +115,8 @@ def render_citations(chunks: list[Chunk]):
             st.caption(chunk.text[:300] + ("..." if len(chunk.text) > 300 else ""))
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# ── Sidebar (continued) ───────────────────────────────────────────────────────
 with st.sidebar:
-    # Language selector
-    selected_lang = st.radio("🌐 Language / 语言", ["English", "中文"], horizontal=True,
-                             index=0 if st.session_state.lang == "English" else 1)
-    if selected_lang != st.session_state.lang:
-        st.session_state.lang = selected_lang
-        st.session_state.summary = ""  # reset summary when language changes
-        st.rerun()
-
-    st.divider()
 
     # ── 1. Upload ─────────────────────────────────────────────────────────────
     st.header(t["upload_header"])
