@@ -173,6 +173,13 @@ h2, h3 {
     border-radius: 10px !important;
     padding: 0.5rem !important;
     background: #FFFFFF !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+[data-testid="stFileUploader"] * {
+    pointer-events: auto !important;
 }
 
 /* ── Expander (citations) ── */
