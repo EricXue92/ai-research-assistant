@@ -291,7 +291,7 @@ with st.sidebar:
             st.rerun()
 
     # ── 2. Summarize ──────────────────────────────────────────────────────────
-    if doc_loaded:
+    if st.session_state.loaded_docs:
         st.divider()
         st.header(t["summarize_header"])
         doc_names = list(st.session_state.loaded_docs.keys())
