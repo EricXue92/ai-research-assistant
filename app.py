@@ -83,8 +83,16 @@ st.markdown("""
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; }
-/* Always show sidebar toggle */
-[data-testid="collapsedControl"] { display: flex !important; visibility: visible !important; }
+/* Force sidebar always visible */
+section[data-testid="stSidebar"] {
+    display: block !important;
+    visibility: visible !important;
+    transform: none !important;
+}
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+}
 
 /* ── Global typography ── */
 html, body, [class*="css"] {
