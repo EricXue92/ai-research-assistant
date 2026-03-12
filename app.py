@@ -78,6 +78,119 @@ T = {
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="AI Research Assistant", page_icon="📄", layout="wide")
 
+st.markdown("""
+<style>
+/* ── Hide Streamlit chrome ── */
+#MainMenu, footer, header { visibility: hidden; }
+
+/* ── Global typography ── */
+html, body, [class*="css"] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Main content area ── */
+.block-container {
+    padding: 2rem 3rem 2rem 3rem;
+    max-width: 900px;
+}
+
+/* ── Title ── */
+h1 {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #1E293B !important;
+    margin-bottom: 0.1rem !important;
+}
+
+/* ── Section headers ── */
+h2, h3 {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 1.5rem !important;
+}
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background-color: #F8FAFC;
+    border-right: 1px solid #E2E8F0;
+    padding-top: 1.5rem;
+}
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    font-size: 0.75rem !important;
+    color: #94A3B8 !important;
+}
+
+/* ── Buttons ── */
+.stButton > button {
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    border: 1px solid #E2E8F0 !important;
+    transition: all 0.15s ease !important;
+}
+.stButton > button:hover {
+    border-color: #2563EB !important;
+    color: #2563EB !important;
+    background: #EFF6FF !important;
+}
+/* Primary button */
+.stButton > button[kind="primary"] {
+    background: #2563EB !important;
+    border-color: #2563EB !important;
+    color: white !important;
+}
+.stButton > button[kind="primary"]:hover {
+    background: #1D4ED8 !important;
+    border-color: #1D4ED8 !important;
+    color: white !important;
+}
+
+/* ── Chat messages ── */
+[data-testid="stChatMessage"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* ── File uploader ── */
+[data-testid="stFileUploader"] {
+    border: 2px dashed #CBD5E1 !important;
+    border-radius: 10px !important;
+    padding: 0.5rem !important;
+    background: #FFFFFF !important;
+}
+
+/* ── Expander (citations) ── */
+[data-testid="stExpander"] {
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+    background: #F8FAFC !important;
+}
+
+/* ── Info / success / warning boxes ── */
+[data-testid="stAlert"] {
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+/* ── Divider ── */
+hr {
+    border-color: #E2E8F0 !important;
+    margin: 1rem 0 !important;
+}
+
+/* ── Caption text ── */
+[data-testid="stCaptionContainer"] p {
+    color: #94A3B8 !important;
+    font-size: 0.85rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Session state ─────────────────────────────────────────────────────────────
 if "store" not in st.session_state:
     st.session_state.store = VectorStore()
