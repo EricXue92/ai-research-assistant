@@ -2,28 +2,42 @@
 export.py — Generate a PDF report of the Q&A session using fpdf2
 """
 
+import unicodedata
 from datetime import datetime
 from fpdf import FPDF
 from rag import Chunk
 
+# Common Unicode → ASCII substitutions (Claude frequently outputs these)
+_UNICODE_SUBS = {
+    "\u2014": "-",    # em dash
+    "\u2013": "-",    # en dash
+    "\u2018": "'",    # left single quote
+    "\u2019": "'",    # right single quote
+    "\u201c": '"',    # left double quote
+    "\u201d": '"',    # right double quote
+    "\u2026": "...",  # ellipsis
+    "\u2022": "*",    # bullet
+    "\u00a0": " ",    # non-breaking space
+    "\u00b7": ".",    # middle dot
+    "\u00ae": "(R)",  # registered trademark
+    "\u00a9": "(C)",  # copyright
+    "\u2122": "(TM)", # trademark
+    "\u2192": "->",   # right arrow
+    "\u2190": "<-",   # left arrow
+    "\u00d7": "x",    # multiplication sign
+    "\u00f7": "/",    # division sign
+}
+
 
 def _safe(text: str) -> str:
-    """Replace common Unicode chars with ASCII equivalents for fpdf2 core fonts."""
-    return (
-        text
-        .replace("\u2014", "-")    # em dash
-        .replace("\u2013", "-")    # en dash
-        .replace("\u2018", "'")    # left single quote
-        .replace("\u2019", "'")    # right single quote
-        .replace("\u201c", '"')    # left double quote
-        .replace("\u201d", '"')    # right double quote
-        .replace("\u2026", "...")  # ellipsis
-        .replace("\u2022", "*")    # bullet
-        .replace("\u00a0", " ")    # non-breaking space
-        .replace("\u00b7", ".")    # middle dot
-        .encode("latin-1", errors="replace")
-        .decode("latin-1")
-    )
+    """Sanitize text for fpdf2 core fonts (latin-1 only)."""
+    if not isinstance(text, str):
+        text = str(text)
+    for char, repl in _UNICODE_SUBS.items():
+        text = text.replace(char, repl)
+    # NFKC normalization converts compatibility chars (e.g. ﬁ→fi, ² →2)
+    text = unicodedata.normalize("NFKC", text)
+    return text.encode("latin-1", errors="replace").decode("latin-1")
 
 
 def export_chat_to_pdf(

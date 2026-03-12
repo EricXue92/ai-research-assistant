@@ -315,17 +315,20 @@ with st.sidebar:
     if st.session_state.chat_history:
         st.divider()
         st.header(t["export_header"])
-        pdf_bytes = export_chat_to_pdf(
-            st.session_state.chat_history,
-            st.session_state.citations,
-            list(st.session_state.loaded_docs.keys()),
-        )
-        st.download_button(
-            label=f"⬇️ {t['export_btn']}",
-            data=pdf_bytes,
-            file_name="qa_report.pdf",
-            mime="application/pdf",
-        )
+        try:
+            pdf_bytes = export_chat_to_pdf(
+                st.session_state.chat_history,
+                st.session_state.citations,
+                list(st.session_state.loaded_docs.keys()),
+            )
+            st.download_button(
+                label=f"⬇️ {t['export_btn']}",
+                data=pdf_bytes,
+                file_name="qa_report.pdf",
+                mime="application/pdf",
+            )
+        except Exception as e:
+            st.warning(f"PDF export unavailable: {e}")
 
 # ── Title (changes with language) ─────────────────────────────────────────────
 st.title(f"📄 {t['title']}")
