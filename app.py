@@ -83,12 +83,7 @@ st.markdown("""
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; }
-/* Force sidebar always visible */
-section[data-testid="stSidebar"] {
-    display: block !important;
-    visibility: visible !important;
-    transform: none !important;
-}
+/* Keep sidebar toggle always visible */
 [data-testid="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
