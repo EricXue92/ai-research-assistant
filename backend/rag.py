@@ -1,21 +1,29 @@
 """
 rag.py — Retrieval-Augmented Generation logic
 
-This file handles 3 things:
-1. Extracting text from a PDF
-2. Splitting the text into small chunks
-3. Building a vector store so we can search by meaning (not just keywords)
+This file handles:
+1. Extracting text from PDFs
+2. Splitting text into chunks (with source tracking for multi-doc support)
+3. Building a searchable vector store using FAISS
 """
 
 import io
 import faiss
 import numpy as np
+from dataclasses import dataclass
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
-# Load a small but powerful embedding model (downloads once, ~80MB)
-# This model converts text into vectors of 384 numbers
+# Load embedding model once at startup (~80MB, downloads on first use)
 model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+@dataclass
+class Chunk:
+    """A piece of text with metadata about where it came from."""
+    text: str
+    source: str       # PDF filename
+    chunk_index: int  # position within that document
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
@@ -25,58 +33,66 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     return "\n".join(pages)
 
 
-def chunk_text(text: str, chunk_size: int = 150, overlap: int = 20) -> list[str]:
+def chunk_document(text: str, source: str, chunk_size: int = 150, overlap: int = 20) -> list[Chunk]:
     """
-    Split text into overlapping chunks of words.
+    Split text into overlapping Chunk objects tagged with their source filename.
 
-    Why overlap? So that a sentence spanning two chunks isn't lost.
-    Example with chunk_size=5, overlap=2:
-      words = [A, B, C, D, E, F, G]
-      chunk1 = [A, B, C, D, E]
-      chunk2 = [D, E, F, G]   ← D and E are repeated for continuity
+    Why overlap? So sentences spanning chunk boundaries aren't lost.
     """
     words = text.split()
     chunks = []
     i = 0
+    index = 0
     while i < len(words):
-        chunk = " ".join(words[i : i + chunk_size])
-        chunks.append(chunk)
-        i += chunk_size - overlap  # step forward, keeping some overlap
+        chunk_text = " ".join(words[i: i + chunk_size])
+        chunks.append(Chunk(text=chunk_text, source=source, chunk_index=index))
+        i += chunk_size - overlap
+        index += 1
     return chunks
 
 
 class VectorStore:
     """
     Stores text chunks as vectors so we can find the most relevant ones
-    for any given question — this is the 'retrieval' part of RAG.
+    for any given question — the 'retrieval' part of RAG.
+
+    Supports multiple documents: call add_document() for each PDF.
     """
 
     def __init__(self):
-        self.chunks = []   # the original text chunks
-        self.index = None  # FAISS index (the searchable vector database)
+        self.chunks: list[Chunk] = []
+        self.index = None  # FAISS index
 
-    def build(self, chunks: list[str]):
-        """Convert chunks to vectors and store them in a FAISS index."""
-        self.chunks = chunks
+    def reset(self):
+        """Clear all documents and reset the index."""
+        self.chunks = []
+        self.index = None
 
-        # encode() turns each chunk into a 384-dimensional vector
-        embeddings = model.encode(chunks, show_progress_bar=False)
+    def add_document(self, chunks: list[Chunk]):
+        """
+        Add one document's chunks to the index without clearing existing ones.
+        This enables multi-document search across all loaded PDFs.
+        """
+        if not chunks:
+            return
 
-        # FAISS IndexFlatL2 finds nearest vectors by Euclidean distance
-        dim = embeddings.shape[1]  # 384
-        self.index = faiss.IndexFlatL2(dim)
-        self.index.add(np.array(embeddings, dtype=np.float32))
+        embeddings = model.encode([c.text for c in chunks], show_progress_bar=False)
+        embeddings = np.array(embeddings, dtype=np.float32)
 
-    def search(self, query: str, top_k: int = 4) -> list[str]:
+        if self.index is None:
+            # First document — create the index
+            dim = embeddings.shape[1]  # 384
+            self.index = faiss.IndexFlatL2(dim)
+
+        self.index.add(embeddings)
+        self.chunks.extend(chunks)
+
+    def search(self, query: str, top_k: int = 4) -> list[Chunk]:
         """
         Find the top_k most relevant chunks for a given question.
-
-        Steps:
-          1. Embed the question into a vector
-          2. Search FAISS for the closest chunk vectors
-          3. Return those chunks as text
+        Returns Chunk objects so callers know which document each came from.
         """
-        if self.index is None:
+        if self.index is None or not self.chunks:
             return []
 
         query_vector = model.encode([query])

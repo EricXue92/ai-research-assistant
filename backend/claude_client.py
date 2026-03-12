@@ -1,59 +1,74 @@
 """
-claude_client.py — Claude API integration with streaming
+claude_client.py — Claude API integration with streaming and chat memory
 
-This file sends the retrieved context + user question to Claude,
-and streams the response back token by token.
+Features:
+- Streaming responses (token by token)
+- Chat memory (Claude remembers previous Q&A pairs)
+- Citation-aware context (chunks are labeled with their source document)
 """
 
-import os
 from typing import Iterator
-import httpx
 import anthropic
+from rag import Chunk
 
-# Use system proxy for Anthropic API (needed to reach Anthropic from some regions)
 client = anthropic.Anthropic()
 
 
-def stream_answer(context_chunks: list[str], question: str) -> Iterator[str]:
+def stream_answer(
+    context_chunks: list[Chunk],
+    question: str,
+    chat_history: list[dict] | None = None,
+    max_history_pairs: int = 6,
+) -> Iterator[str]:
     """
-    Given relevant text chunks and a question, ask Claude to answer
-    and yield the response word by word (streaming).
+    Stream Claude's answer for a question given relevant document chunks.
 
-    Why streaming? So the UI shows text appearing in real time
-    instead of freezing for 10 seconds then dumping everything at once.
+    Args:
+        context_chunks:    The most relevant chunks retrieved from the vector store.
+        question:          The user's current question.
+        chat_history:      Previous Q&A pairs for memory (each is {"question": ..., "answer": ...}).
+        max_history_pairs: How many past exchanges to include (prevents context overflow).
     """
-    # Join the retrieved chunks into one context block
-    context = "\n\n---\n\n".join(context_chunks)
+    # Label each chunk with its source so Claude can reference them
+    context_parts = []
+    for chunk in context_chunks:
+        context_parts.append(f"[Source: {chunk.source}]\n{chunk.text}")
+    context = "\n\n---\n\n".join(context_parts)
 
-    prompt = f"""You are a helpful research assistant.
-Answer the question using ONLY the context provided below.
-If the answer is not found in the context, say "I couldn't find that in the document."
+    # System prompt holds the document context — stays constant across turns
+    system_prompt = f"""You are a helpful research assistant.
+Answer questions using ONLY the context provided below.
+If the answer is not in the context, say "I couldn't find that in the document."
+Be concise and cite the source document name when relevant.
 
-Context:
-{context}
+Document Context:
+{context}"""
 
-Question: {question}
+    # Build message list: inject chat history for memory, then add current question
+    messages = []
+    if chat_history:
+        for pair in chat_history[-max_history_pairs:]:
+            messages.append({"role": "user", "content": pair["question"]})
+            messages.append({"role": "assistant", "content": pair["answer"]})
+    messages.append({"role": "user", "content": question})
 
-Answer:"""
-
-    # client.messages.stream() opens a streaming connection to Claude
-    # Instead of waiting for the full response, we get tokens one by one
     with client.messages.stream(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
+        system=system_prompt,
+        messages=messages,
     ) as stream:
-        for text in stream.text_stream:  # yields one token at a time
+        for text in stream.text_stream:
             yield text
 
 
 def summarize(text: str) -> Iterator[str]:
-    """
-    Summarize a full document (used for short documents that fit in context).
-    Streams the summary back token by token.
-    """
-    prompt = f"""Please provide a concise summary of the following document.
-Include: main topic, key findings or arguments, methodology (if any), and conclusions.
+    """Summarize a document. Streams the summary token by token."""
+    prompt = f"""Provide a concise summary of this document. Include:
+- Main topic
+- Key findings or arguments
+- Methodology (if any)
+- Conclusions
 
 Document:
 {text[:12000]}
