@@ -76,14 +76,15 @@ T = {
 }
 
 # ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(page_title="AI Research Assistant", page_icon="📄", layout="wide")
+st.set_page_config(page_title="AI Research Assistant", page_icon="📄", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; }
-/* Keep header visible so sidebar toggle button works */
+/* Always show sidebar toggle */
+[data-testid="collapsedControl"] { display: flex !important; visibility: visible !important; }
 
 /* ── Global typography ── */
 html, body, [class*="css"] {
