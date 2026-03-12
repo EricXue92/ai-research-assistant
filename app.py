@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
 import streamlit as st
 from rag import extract_text_from_pdf, chunk_document, VectorStore, Chunk
-from claude_client import stream_answer, summarize
+from claude_client import stream_answer, summarize, MODELS
 from export import export_chat_to_pdf
 
 # ── Translations ──────────────────────────────────────────────────────────────
@@ -204,6 +204,8 @@ if "summary" not in st.session_state:
     st.session_state.summary = ""
 if "lang" not in st.session_state:
     st.session_state.lang = "English"
+if "model_label" not in st.session_state:
+    st.session_state.model_label = "Sonnet 4.6 — Balanced"
 
 # ── Language selector (must come before computing t) ──────────────────────────
 with st.sidebar:
@@ -211,7 +213,14 @@ with st.sidebar:
                              index=0 if st.session_state.lang == "English" else 1)
     if selected_lang != st.session_state.lang:
         st.session_state.lang = selected_lang
-        st.session_state.summary = ""  # reset summary when language changes
+        st.session_state.summary = ""
+
+    st.session_state.model_label = st.selectbox(
+        "🤖 Model",
+        options=list(MODELS.keys()),
+        index=list(MODELS.keys()).index(st.session_state.model_label),
+        key="model_selector",
+    )
     st.divider()
 
 # Shorthand for current translations — computed after language is set
@@ -282,6 +291,7 @@ with st.sidebar:
                     summarize(
                         st.session_state.loaded_docs[selected_doc],
                         lang=t["lang_name"],
+                        model=MODELS[st.session_state.model_label],
                     )
                 )
 
@@ -336,6 +346,7 @@ else:
                     question,
                     chat_history=st.session_state.chat_history,
                     lang=t["lang_name"],
+                    model=MODELS[st.session_state.model_label],
                 )
             )
             render_citations(relevant_chunks)

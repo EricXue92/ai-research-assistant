@@ -14,12 +14,19 @@ from rag import Chunk
 client = anthropic.Anthropic()
 
 
+MODELS = {
+    "Sonnet 4.6 — Balanced": "claude-sonnet-4-6",
+    "Haiku 4.5 — Fast": "claude-haiku-4-5-20251001",
+    "Opus 4.6 — Most Powerful": "claude-opus-4-6",
+}
+
 def stream_answer(
     context_chunks: list[Chunk],
     question: str,
     chat_history: list[dict] | None = None,
     max_history_pairs: int = 6,
     lang: str = "English",
+    model: str = "claude-sonnet-4-6",
 ) -> Iterator[str]:
     """
     Stream Claude's answer for a question given relevant document chunks.
@@ -55,7 +62,7 @@ Document Context:
     messages.append({"role": "user", "content": question})
 
     with client.messages.stream(
-        model="claude-sonnet-4-6",
+        model=model,
         max_tokens=1024,
         system=system_prompt,
         messages=messages,
@@ -64,7 +71,7 @@ Document Context:
             yield text
 
 
-def summarize(text: str, lang: str = "English") -> Iterator[str]:
+def summarize(text: str, lang: str = "English", model: str = "claude-sonnet-4-6") -> Iterator[str]:
     """Summarize a document. Streams the summary token by token."""
     prompt = f"""Provide a concise summary of this document. Include:
 - Main topic
@@ -80,7 +87,7 @@ Document:
 Summary:"""
 
     with client.messages.stream(
-        model="claude-sonnet-4-6",
+        model=model,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     ) as stream:
