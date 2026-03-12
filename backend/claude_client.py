@@ -19,6 +19,7 @@ def stream_answer(
     question: str,
     chat_history: list[dict] | None = None,
     max_history_pairs: int = 6,
+    lang: str = "English",
 ) -> Iterator[str]:
     """
     Stream Claude's answer for a question given relevant document chunks.
@@ -40,6 +41,7 @@ def stream_answer(
 Answer questions using ONLY the context provided below.
 If the answer is not in the context, say "I couldn't find that in the document."
 Be concise and cite the source document name when relevant.
+You MUST respond in {lang}.
 
 Document Context:
 {context}"""
@@ -62,13 +64,15 @@ Document Context:
             yield text
 
 
-def summarize(text: str) -> Iterator[str]:
+def summarize(text: str, lang: str = "English") -> Iterator[str]:
     """Summarize a document. Streams the summary token by token."""
     prompt = f"""Provide a concise summary of this document. Include:
 - Main topic
 - Key findings or arguments
 - Methodology (if any)
 - Conclusions
+
+You MUST respond in {lang}.
 
 Document:
 {text[:12000]}
