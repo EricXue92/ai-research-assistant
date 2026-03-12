@@ -124,9 +124,10 @@ with st.sidebar:
         t["upload_label"],
         type="pdf",
         accept_multiple_files=True,
+        key="file_uploader",
     )
 
-    if uploaded_files and st.button(t["process_btn"], type="primary"):
+    if uploaded_files and st.button(t["process_btn"], type="primary", key="process_btn"):
         for uploaded_file in uploaded_files:
             if uploaded_file.name in st.session_state.loaded_docs:
                 st.warning(f"'{uploaded_file.name}' {t['already_loaded']}")
@@ -146,7 +147,7 @@ with st.sidebar:
         for name in st.session_state.loaded_docs:
             st.markdown(f"- {name}")
 
-        if st.button(f"🗑️ {t['clear_btn']}"):
+        if st.button(f"🗑️ {t['clear_btn']}", key="clear_btn"):
             st.session_state.store.reset()
             st.session_state.loaded_docs = {}
             st.session_state.chat_history = []
@@ -159,9 +160,9 @@ with st.sidebar:
         st.divider()
         st.header(t["summarize_header"])
         doc_names = list(st.session_state.loaded_docs.keys())
-        selected_doc = st.selectbox(t["select_doc"], doc_names)
+        selected_doc = st.selectbox(t["select_doc"], doc_names, key="select_doc")
 
-        if st.button(t["summary_btn"]):
+        if st.button(t["summary_btn"], key="summary_btn"):
             st.session_state.summary = ""
             with st.spinner(t["summarizing"]):
                 st.session_state.summary = "".join(
