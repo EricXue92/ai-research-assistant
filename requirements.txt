@@ -1,0 +1,5 @@
+anthropic
+pypdf
+sentence-transformers
+faiss-cpu
+streamlit
