@@ -18,6 +18,7 @@ import streamlit as st
 from rag import extract_text_from_pdf, chunk_document, VectorStore, Chunk
 from claude_client import stream_answer, summarize, MODELS
 from export import export_chat_to_pdf
+from auth import show_auth_form, show_logout_button
 
 # ── Translations ──────────────────────────────────────────────────────────────
 T = {
@@ -77,6 +78,9 @@ T = {
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="AI Research Assistant", page_icon="📄", layout="wide", initial_sidebar_state="expanded")
+
+if not show_auth_form():
+    st.stop()
 
 st.markdown("""
 <style>
@@ -222,6 +226,8 @@ if "model_label" not in st.session_state:
 
 # ── Language selector (must come before computing t) ──────────────────────────
 with st.sidebar:
+    show_logout_button()
+    st.divider()
     selected_lang = st.radio("🌐 Language / 语言", ["English", "中文"], horizontal=True,
                              index=0 if st.session_state.lang == "English" else 1)
     if selected_lang != st.session_state.lang:
