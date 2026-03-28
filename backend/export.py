@@ -81,17 +81,17 @@ def export_chat_to_pdf(
     for i, entry in enumerate(chat_history):
         # Question
         pdf.set_font("Helvetica", "B", 11)
-        pdf.multi_cell(0, 7, _safe(f"Q{i + 1}: {entry['question']}"))
+        pdf.multi_cell(0, 7, _safe(f"Q{i + 1}: {entry['question']}"), wrapmode="CHAR")
 
         # Answer
         pdf.set_font("Helvetica", "", 10)
-        pdf.multi_cell(0, 6, _safe(entry["answer"]))
+        pdf.multi_cell(0, 6, _safe(entry["answer"]), wrapmode="CHAR")
 
         # Citations
         if i < len(citations) and citations[i]:
             pdf.set_font("Helvetica", "I", 9)
             sources = list({c.source for c in citations[i]})  # unique source names
-            pdf.multi_cell(0, 5, _safe(f"Sources: {', '.join(sources)}"))
+            pdf.multi_cell(0, 5, _safe(f"Sources: {', '.join(sources)}"), wrapmode="CHAR")
 
         pdf.ln(5)
 

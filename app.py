@@ -83,11 +83,25 @@ st.markdown("""
 /* ── Hide Streamlit chrome ── */
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; }
-/* Keep sidebar toggle always visible */
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
+/* Hide sidebar collapse/expand buttons */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stExpandSidebarButton"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    pointer-events: none !important;
 }
+/* Hide the entire sidebar header row (contains only the collapse button) */
+[data-testid="stSidebarHeader"] {
+    display: none !important;
+}
+/* Catch newer Streamlit versions' collapse button */
+button[kind="header"] { display: none !important; }
+[data-testid="stSidebarNav"] > button { display: none !important; }
+section[data-testid="stSidebar"] > div:first-child > button { display: none !important; }
 
 /* ── Global typography ── */
 html, body, [class*="css"] {

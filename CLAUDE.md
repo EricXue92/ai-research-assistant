@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code Style
+
+Use comments sparingly — only where the logic isn't self-evident.
+
 ## Running the App
 
 Always activate the venv first:
