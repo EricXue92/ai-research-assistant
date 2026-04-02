@@ -2,15 +2,14 @@
 claude_client.py — Claude API integration with streaming and chat memory
 
 Features:
-- Streaming responses (token by token)
+- Streaming responses (token by token via callback)
 - Chat memory (Claude remembers previous Q&A pairs)
 - Citation-aware context (chunks are labeled with their source document)
 """
 
-from typing import Iterator
+from typing import Callable
 import os
 import unicodedata
-import httpx
 import anthropic
 from dotenv import load_dotenv
 from rag import Chunk
@@ -20,7 +19,7 @@ def _safe_text(text: str) -> str:
     """Normalize Unicode so the HTTP layer never hits an ASCII encode error."""
     return unicodedata.normalize("NFKC", text)
 
-load_dotenv()  # loads .env from project root (or parent dirs)
+load_dotenv()
 
 _api_key = os.getenv("ANTHROPIC_API_KEY")
 if not _api_key:
@@ -29,16 +28,7 @@ if not _api_key:
         "Run: export ANTHROPIC_API_KEY=your-key-here"
     )
 
-# max_keepalive_connections=0 prevents httpx from reusing connections across requests.
-# On macOS with a SOCKS proxy, pooled connections go stale silently and cause the
-# second streaming request to hang indefinitely.
-client = anthropic.Anthropic(
-    api_key=_api_key,
-    http_client=httpx.Client(
-        limits=httpx.Limits(max_keepalive_connections=0, max_connections=10),
-        timeout=httpx.Timeout(60.0, connect=10.0),
-    ),
-)
+_client = anthropic.Anthropic(api_key=_api_key)
 
 
 MODELS = {
@@ -54,23 +44,14 @@ def stream_answer(
     max_history_pairs: int = 6,
     lang: str = "English",
     model: str = "claude-sonnet-4-6",
-) -> Iterator[str]:
-    """
-    Stream Claude's answer for a question given relevant document chunks.
-
-    Args:
-        context_chunks:    The most relevant chunks retrieved from the vector store.
-        question:          The user's current question.
-        chat_history:      Previous Q&A pairs for memory (each is {"question": ..., "answer": ...}).
-        max_history_pairs: How many past exchanges to include (prevents context overflow).
-    """
-    # Label each chunk with its source so Claude can reference them
+    on_token: Callable[[str], None] | None = None,
+) -> str:
+    """Stream Claude's answer. Calls on_token(full_text_so_far) per token. Returns full answer."""
     context_parts = []
     for chunk in context_chunks:
         context_parts.append(f"[Source: {chunk.source}]\n{_safe_text(chunk.text)}")
     context = "\n\n---\n\n".join(context_parts)
 
-    # System prompt holds the document context — stays constant across turns
     system_prompt = f"""You are a helpful research assistant.
 Answer questions using ONLY the context provided below.
 If the answer is not in the context, say "I couldn't find that in the document."
@@ -80,7 +61,6 @@ You MUST respond in {lang}.
 Document Context:
 {context}"""
 
-    # Build message list: inject chat history for memory, then add current question
     messages = []
     if chat_history:
         for pair in chat_history[-max_history_pairs:]:
@@ -88,17 +68,22 @@ Document Context:
             messages.append({"role": "assistant", "content": pair["answer"]})
     messages.append({"role": "user", "content": question})
 
-    with client.messages.stream(
+    full_answer = ""
+    with _client.messages.stream(
         model=model,
         max_tokens=1024,
         system=system_prompt,
         messages=messages,
     ) as stream:
-        yield from stream.text_stream
+        for token in stream.text_stream:
+            full_answer += token
+            if on_token:
+                on_token(full_answer)
+    return full_answer
 
 
-def summarize(text: str, lang: str = "English", model: str = "claude-sonnet-4-6") -> Iterator[str]:
-    """Summarize a document. Streams the summary token by token."""
+def summarize(text: str, lang: str = "English", model: str = "claude-sonnet-4-6") -> str:
+    """Summarize a document. Returns the full summary."""
     prompt = f"""Provide a concise summary of this document. Include:
 - Main topic
 - Key findings or arguments
@@ -112,9 +97,9 @@ Document:
 
 Summary:"""
 
-    with client.messages.stream(
+    response = _client.messages.create(
         model=model,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        yield from stream.text_stream
+    )
+    return response.content[0].text

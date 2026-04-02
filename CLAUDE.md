@@ -63,6 +63,7 @@ User question → VectorStore.search() → relevant Chunk objects
 ### Session state keys (`app.py`)
 
 | Key | Type | Purpose |
+
 |---|---|---|
 | `store` | `VectorStore` | Shared FAISS index across all loaded docs |
 | `loaded_docs` | `dict[str, str]` | Maps filename → full extracted text |

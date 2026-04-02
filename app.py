@@ -295,7 +295,7 @@ with st.sidebar:
                 chunks = chunk_document(text, source=uploaded_file.name)
                 st.session_state.store.add_document(chunks)
                 st.session_state.loaded_docs[uploaded_file.name] = text
-                st.success(f"✅ '{uploaded_file.name}' — {len(chunks)} {t['indexed']}")
+        st.rerun()
 
     if st.session_state.loaded_docs:
         st.markdown(f"**{t['loaded_docs']}**")
@@ -320,12 +320,10 @@ with st.sidebar:
         if st.button(t["summary_btn"], key="summary_btn"):
             st.session_state.summary = ""
             with st.spinner(t["summarizing"]):
-                st.session_state.summary = "".join(
-                    summarize(
-                        st.session_state.loaded_docs[selected_doc],
-                        lang=t["lang_name"],
-                        model=MODELS[st.session_state.model_label],
-                    )
+                st.session_state.summary = summarize(
+                    st.session_state.loaded_docs[selected_doc],
+                    lang=t["lang_name"],
+                    model=MODELS[st.session_state.model_label],
                 )
 
         if st.session_state.summary:
@@ -346,6 +344,7 @@ with st.sidebar:
                 data=pdf_bytes,
                 file_name="qa_report.pdf",
                 mime="application/pdf",
+                key="export_btn",
             )
         except Exception as e:
             st.warning(f"PDF export unavailable: {e}")
@@ -368,7 +367,7 @@ else:
             if i < len(st.session_state.citations):
                 render_citations(st.session_state.citations[i])
 
-    question = st.chat_input(t["chat_placeholder"])
+    question = st.chat_input(t["chat_placeholder"], key="chat_input")
 
     if question:
         with st.chat_message("user"):
@@ -377,16 +376,14 @@ else:
         with st.chat_message("assistant"):
             relevant_chunks = st.session_state.store.search(question)
             placeholder = st.empty()
-            full_answer = ""
-            for token in stream_answer(
+            full_answer = stream_answer(
                 relevant_chunks,
                 question,
                 chat_history=st.session_state.chat_history,
                 lang=t["lang_name"],
                 model=MODELS[st.session_state.model_label],
-            ):
-                full_answer += token
-                placeholder.markdown(full_answer + "▌")
+                on_token=lambda text: placeholder.markdown(text + "▌"),
+            )
             placeholder.markdown(full_answer)
             render_citations(relevant_chunks)
 
@@ -394,4 +391,3 @@ else:
             {"question": question, "answer": full_answer}
         )
         st.session_state.citations.append(relevant_chunks)
-        st.rerun()

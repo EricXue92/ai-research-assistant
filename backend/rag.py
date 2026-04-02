@@ -14,8 +14,14 @@ from dataclasses import dataclass
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
-# Load embedding model once at startup (~80MB, downloads on first use)
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Lazy-loaded embedding model — initialized on first use, not at import time
+_model = None
+
+def _get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
 
 @dataclass
@@ -76,7 +82,7 @@ class VectorStore:
         if not chunks:
             return
 
-        embeddings = model.encode([c.text for c in chunks], show_progress_bar=False)
+        embeddings = _get_model().encode([c.text for c in chunks], show_progress_bar=False)
         embeddings = np.array(embeddings, dtype=np.float32)
 
         if self.index is None:
@@ -95,7 +101,7 @@ class VectorStore:
         if self.index is None or not self.chunks:
             return []
 
-        query_vector = model.encode([query])
+        query_vector = _get_model().encode([query])
         _, indices = self.index.search(
             np.array(query_vector, dtype=np.float32), top_k
         )
