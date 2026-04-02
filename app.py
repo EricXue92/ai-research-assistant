@@ -281,6 +281,9 @@ with st.sidebar:
             if uploaded_file.name in st.session_state.loaded_docs:
                 st.warning(f"'{uploaded_file.name}' {t['already_loaded']}")
                 continue
+            if len(uploaded_file.getvalue()) > 50 * 1024 * 1024:
+                st.error(f"'{uploaded_file.name}' exceeds 50MB limit.")
+                continue
             with st.spinner(f"{t['processing']} '{uploaded_file.name}'..."):
                 text = extract_text_from_pdf(uploaded_file.getvalue())
                 if not text.strip():

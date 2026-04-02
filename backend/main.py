@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from rag import extract_text_from_pdf, chunk_text, VectorStore
+from rag import extract_text_from_pdf, chunk_document, VectorStore
 from claude_client import stream_answer, summarize
 
 app = FastAPI(title="AI Research Assistant API")
@@ -20,8 +20,8 @@ app = FastAPI(title="AI Research Assistant API")
 # Allow the Streamlit frontend (running on port 8501) to call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=["http://localhost:8501", "http://127.0.0.1:8501"],
+    allow_methods=["POST"],
     allow_headers=["*"],
 )
 
@@ -51,8 +51,9 @@ async def upload_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
 
     full_text_cache = text
-    chunks = chunk_text(text)
-    store.build(chunks)
+    store.reset()
+    chunks = chunk_document(text, source=file.filename)
+    store.add_document(chunks)
 
     return {
         "message": f"✅ Processed '{file.filename}' — {len(chunks)} chunks indexed.",

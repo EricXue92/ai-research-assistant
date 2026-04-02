@@ -8,10 +8,18 @@ Features:
 """
 
 from typing import Iterator
+import os
 import anthropic
 from rag import Chunk
 
-client = anthropic.Anthropic()
+_api_key = os.getenv("ANTHROPIC_API_KEY")
+if not _api_key:
+    raise EnvironmentError(
+        "ANTHROPIC_API_KEY is not set. "
+        "Run: export ANTHROPIC_API_KEY=your-key-here"
+    )
+
+client = anthropic.Anthropic(api_key=_api_key)
 
 
 MODELS = {

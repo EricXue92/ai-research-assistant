@@ -34,6 +34,9 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Choose a PDF", type="pdf")
 
     if uploaded_file and st.button("Process Document", type="primary"):
+        if len(uploaded_file.getvalue()) > 50 * 1024 * 1024:
+            st.error("File exceeds 50MB limit.")
+            st.stop()
         with st.spinner("Extracting text and building vector index..."):
             try:
                 response = NO_PROXY_CLIENT.post(
