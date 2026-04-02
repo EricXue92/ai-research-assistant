@@ -9,8 +9,17 @@ Features:
 
 from typing import Iterator
 import os
+import unicodedata
 import anthropic
+from dotenv import load_dotenv
 from rag import Chunk
+
+
+def _safe_text(text: str) -> str:
+    """Normalize Unicode so the HTTP layer never hits an ASCII encode error."""
+    return unicodedata.normalize("NFKC", text)
+
+load_dotenv()  # loads .env from project root (or parent dirs)
 
 _api_key = os.getenv("ANTHROPIC_API_KEY")
 if not _api_key:
@@ -48,7 +57,7 @@ def stream_answer(
     # Label each chunk with its source so Claude can reference them
     context_parts = []
     for chunk in context_chunks:
-        context_parts.append(f"[Source: {chunk.source}]\n{chunk.text}")
+        context_parts.append(f"[Source: {chunk.source}]\n{_safe_text(chunk.text)}")
     context = "\n\n---\n\n".join(context_parts)
 
     # System prompt holds the document context — stays constant across turns
@@ -90,7 +99,7 @@ def summarize(text: str, lang: str = "English", model: str = "claude-sonnet-4-6"
 You MUST respond in {lang}.
 
 Document:
-{text[:12000]}
+{_safe_text(text[:12000])}
 
 Summary:"""
 
