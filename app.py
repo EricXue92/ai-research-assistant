@@ -376,15 +376,17 @@ else:
 
         with st.chat_message("assistant"):
             relevant_chunks = st.session_state.store.search(question)
-            full_answer = st.write_stream(
-                stream_answer(
-                    relevant_chunks,
-                    question,
-                    chat_history=st.session_state.chat_history,
-                    lang=t["lang_name"],
-                    model=MODELS[st.session_state.model_label],
-                )
+            gen = stream_answer(
+                relevant_chunks,
+                question,
+                chat_history=st.session_state.chat_history,
+                lang=t["lang_name"],
+                model=MODELS[st.session_state.model_label],
             )
+            try:
+                full_answer = str(st.write_stream(gen))
+            finally:
+                gen.close()
             render_citations(relevant_chunks)
 
         st.session_state.chat_history.append(

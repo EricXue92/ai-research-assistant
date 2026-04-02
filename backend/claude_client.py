@@ -78,14 +78,19 @@ Document Context:
             messages.append({"role": "assistant", "content": pair["answer"]})
     messages.append({"role": "user", "content": question})
 
-    with client.messages.stream(
+    stream_ctx = client.messages.stream(
         model=model,
         max_tokens=1024,
         system=system_prompt,
         messages=messages,
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
+    )
+    try:
+        with stream_ctx as stream:
+            for token in stream.text_stream:
+                yield token
+    except GeneratorExit:
+        stream_ctx.__exit__(None, None, None)
+        raise
 
 
 def summarize(text: str, lang: str = "English", model: str = "claude-sonnet-4-6") -> Iterator[str]:
@@ -103,10 +108,15 @@ Document:
 
 Summary:"""
 
-    with client.messages.stream(
+    stream_ctx = client.messages.stream(
         model=model,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
+    )
+    try:
+        with stream_ctx as stream:
+            for token in stream.text_stream:
+                yield token
+    except GeneratorExit:
+        stream_ctx.__exit__(None, None, None)
+        raise
