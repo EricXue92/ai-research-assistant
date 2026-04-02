@@ -10,6 +10,7 @@ Features:
 from typing import Iterator
 import os
 import unicodedata
+import httpx
 import anthropic
 from dotenv import load_dotenv
 from rag import Chunk
@@ -28,7 +29,16 @@ if not _api_key:
         "Run: export ANTHROPIC_API_KEY=your-key-here"
     )
 
-client = anthropic.Anthropic(api_key=_api_key)
+# max_keepalive_connections=0 prevents httpx from reusing connections across requests.
+# On macOS with a SOCKS proxy, pooled connections go stale silently and cause the
+# second streaming request to hang indefinitely.
+client = anthropic.Anthropic(
+    api_key=_api_key,
+    http_client=httpx.Client(
+        limits=httpx.Limits(max_keepalive_connections=0, max_connections=10),
+        timeout=httpx.Timeout(60.0, connect=10.0),
+    ),
+)
 
 
 MODELS = {

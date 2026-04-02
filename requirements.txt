@@ -1,4 +1,6 @@
 anthropic
+httpx
+python-dotenv
 pypdf
 sentence-transformers
 faiss-cpu

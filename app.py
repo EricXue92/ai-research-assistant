@@ -394,3 +394,4 @@ else:
             {"question": question, "answer": full_answer}
         )
         st.session_state.citations.append(relevant_chunks)
+        st.rerun()
