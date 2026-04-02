@@ -21,14 +21,15 @@ def _safe_text(text: str) -> str:
 
 load_dotenv()
 
-_api_key = os.getenv("ANTHROPIC_API_KEY")
-if not _api_key:
-    raise EnvironmentError(
-        "ANTHROPIC_API_KEY is not set. "
-        "Run: export ANTHROPIC_API_KEY=your-key-here"
-    )
+# Client is initialized lazily so a missing key never crashes the app at import time.
+# The SDK reads ANTHROPIC_API_KEY from the environment automatically.
+_client: anthropic.Anthropic | None = None
 
-_client = anthropic.Anthropic(api_key=_api_key)
+def _get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic()
+    return _client
 
 
 MODELS = {
@@ -69,7 +70,7 @@ Document Context:
     messages.append({"role": "user", "content": question})
 
     full_answer = ""
-    with _client.messages.stream(
+    with _get_client().messages.stream(
         model=model,
         max_tokens=1024,
         system=system_prompt,
@@ -97,7 +98,7 @@ Document:
 
 Summary:"""
 
-    response = _client.messages.create(
+    response = _get_client().messages.create(
         model=model,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
