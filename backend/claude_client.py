@@ -45,7 +45,7 @@ def stream_answer(
     max_history_pairs: int = 6,
     lang: str = "English",
     model: str = "claude-sonnet-4-6",
-    on_token: Callable[[str], None] | None = None,
+    on_token: Callable[[str], object] | None = None,
 ) -> str:
     """Stream Claude's answer. Calls on_token(full_text_so_far) per token. Returns full answer."""
     context_parts = []
